@@ -1,24 +1,20 @@
-import time
 import os
-import json
-import openai
 import streamlit as st
-from streamlit_lottie import st_lottie
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+import google.generativeai as genai
+
 
 def main():
     set_page_config()
     custom_css()
     hide_elements()
-    sidebar()
     title_and_description()
     input_section()
 
 def set_page_config():
     st.set_page_config(
-        page_title="Alwrity",
+        page_title="Alwrity Copywriting",
         layout="wide",
-        page_icon="img/logo.png"
     )
 
 def custom_css():
@@ -57,42 +53,9 @@ def hide_elements():
     hide_streamlit_footer = '<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>'
     st.markdown(hide_streamlit_footer, unsafe_allow_html=True)
 
-def sidebar():
-    st.sidebar.title("Attention-Interest-Description-Persuasion-Proof-Close")
-    st.sidebar.image("img/alwrity.jpeg", use_column_width=True)
-    st.sidebar.markdown("🧕 :red[Checkout Alwrity], complete **AI writer & Blogging solution**:[Alwrity](https://alwrity.netlify.app)")
-
 
 def title_and_description():
     st.title("✍️ Alwrity - AI Generator for CopyWriting AIDPPC Formula")
-    with st.expander("What is **Copywriting AIDPPC formula** & **How to Use**? 📝❗"):
-        st.markdown('''
-            ### What's AIDPPC copywriting Formula, and How to use this AI generator 🗣️
-            ---
-            #### AIDPPC Copywriting Formula
-
-            AIDPPC stands for Attention-Interest-Description-Persuasion-Proof-Close. It's a comprehensive copywriting formula that involves:
-
-            1. **Attention**: Grabbing the audience's attention with a compelling headline or opening statement.
-            2. **Interest**: Generating interest by highlighting the benefits or solving a problem for the audience.
-            3. **Description**: Describing the product or service in detail, emphasizing its features and unique selling points.
-            4. **Persuasion**: Persuading the audience to take action by presenting compelling arguments or incentives.
-            5. **Proof**: Providing social proof or evidence to support the claims made in the copy.
-            6. **Close**: Prompting the audience to take the final step, such as making a purchase or signing up.
-
-            The AIDPPC formula guides copywriters in creating persuasive and convincing content that leads the audience to action.
-
-            #### AIDPPC Copywriting Formula: Simple Example
-
-            - **Attention**: Catchy headline: "Discover the Secret to Boosting Your Productivity!"
-            - **Interest**: Highlighting benefits: "Our productivity tool helps you save time and stay organized."
-            - **Description**: Features overview: "With built-in task lists, calendar integration, and collaboration tools."
-            - **Persuasion**: Call to action: "Start your free trial today and experience the difference!"
-            - **Proof**: Testimonials or reviews: "Rated 5 stars by thousands of satisfied users."
-            - **Close**: Urgency or incentive: "Limited time offer - get 20% off when you sign up now!"
-
-            ---
-        ''')
 
 
 def input_section():
@@ -124,80 +87,74 @@ def input_section():
             else:
                 st.error("All fields are required!")
 
-    page_bottom()
-
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def generate_aidppc_copy(brand_name, description, interest, close):
     prompt = f"""As an expert copywriter, I need your help in creating a marketing campaign for {brand_name},
         which is a {description}. Your task is to use the AIDPPC (Attention-Interest-Description-Persuasion-Proof-Close) formula to craft compelling copy. Present Compelling Arguments or Incentives to Persuade. Solve a Problem to Generate Interest for {interest}. Prompt the Audience to Take the Final Step for {close}.
     """
-    return openai_chatgpt(prompt)
-
-
-def page_bottom():
-    """ """
-    data_oracle = import_json(r"lottie_files/brain_robot.json")
-    st_lottie(data_oracle, width=600, key="oracle")
-
-    st.markdown('''
-    Copywrite using AIDPPC formula - powered by AI (OpenAI, Gemini Pro).
-
-    Implemented by [Alwrity](https://alwrity.netlify.app).
-
-    Learn more about [Google's Stance on AI generated content](https://alwrity.netlify.app/post/googles-guidelines-on-using-ai-generated-content-everything-you-need-to-know).
-    ''')
-
-    st.markdown("""
-    ### Attention:
-    Are you tired of struggling to create effective marketing campaigns that engage your audience?
-
-    ### Interest:
-    Imagine having access to a powerful tool that crafts compelling copy effortlessly, saving you time and effort.
-
-    ### Description:
-    Introducing Alwrity - Your AI Generator for Copywriting AIDPPC Formula. With Alwrity, you can create persuasive marketing campaigns that drive action effectively.
-
-    ### Persuasion:
-    Don't let ineffective copywriting hold back your business. Try Alwrity today and revolutionize your marketing efforts!
-
-    ### Proof:
-    Trusted by thousands of users, Alwrity has helped businesses like yours achieve their marketing goals.
-
-    ### Close:
-    Start creating persuasive copy with Alwrity now and see the difference it makes in your marketing campaigns!
-    """)
+    try:
+        response = generate_text_with_exception_handling(prompt)
+        return response
+    except Exception as err:
+        st.error(f"Exit: Failed to get response from LLM: {err}")
+        exit(1)
 
 
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
-def openai_chatgpt(prompt, model="gpt-3.5-turbo-0125", max_tokens=500, top_p=0.9, n=1):
+def generate_text_with_exception_handling(prompt):
+    """
+    Generates text using the Gemini model with exception handling.
+
+    Args:
+        api_key (str): Your Google Generative AI API key.
+        prompt (str): The prompt for text generation.
+
+    Returns:
+        str: The generated text.
+    """
+
     try:
-        client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            n=n,
-            top_p=top_p
-        )
-        return response.choices[0].message.content
-    except openai.APIError as e:
-        st.error(f"OpenAI API Error: {e}")
-    except openai.APIConnectionError as e:
-        st.error(f"Failed to connect to OpenAI API: {e}")
-    except openai.RateLimitError as e:
-        st.error(f"Rate limit exceeded on OpenAI API request: {e}")
-    except Exception as err:
-        st.error(f"An error occurred: {err}")
+        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
+        generation_config = {
+            "temperature": 1,
+            "top_p": 0.6,
+            "top_k": 0,
+            "max_output_tokens": 1024,
+        }
 
-# Function to import JSON data
-def import_json(path):
-    with open(path, "r", encoding="utf8", errors="ignore") as file:
-        url = json.load(file)
-        return url
+        safety_settings = [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+            },
+        ]
 
+        model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest",
+                                      generation_config=generation_config,
+                                      safety_settings=safety_settings)
+
+        convo = model.start_chat(history=[])
+        convo.send_message(prompt)
+        return convo.last.text
+
+    except Exception as e:
+        st.exception(f"An unexpected error occurred: {e}")
+        return None
 
 
 if __name__ == "__main__":
