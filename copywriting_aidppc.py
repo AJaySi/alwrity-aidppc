@@ -82,6 +82,7 @@ def input_section():
                     if aidppc_copy:
                         st.subheader('**👩🔬👩🔬 Your AIDPPC Copy**')
                         st.markdown(aidppc_copy)
+                        st.markdown("\n\n\n")
                     else:
                         st.error("💥 **Failed to generate AIDPPC copy. Please try again!**")
             else:
